@@ -1,5 +1,6 @@
 package view;
 
+import controller.PaintController;
 import javafx.application.Application;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -16,11 +17,12 @@ import javafx.scene.shape.Line;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Pair;
+import model.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DoodleView extends Application
+public class DoodleView extends Application implements IObserver
 {
     public static final int WIN_WIDTH = 1000;
     public static final int WIN_HEIGHT = 600;
@@ -33,8 +35,9 @@ public class DoodleView extends Application
     private Pair<Double, Double> startPoint;
     GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
     BorderPane mainPanel = new BorderPane();
-    List<Line> linesList = new ArrayList<>();
-    List<Ellipse> ovalsList = new ArrayList<>();
+    private IShape shapeObject;
+    private PaintController controller;
+    Pair<Double,Double> endPair;
 
     String buttonText = "Line";
 
@@ -46,6 +49,11 @@ public class DoodleView extends Application
     private ColorPicker strokeColorPicker = new ColorPicker();
     private Slider strokeSlider;
     private CheckBox filledCheckbox;
+
+    public DoodleView()
+    {
+        controller = new PaintController(this);
+    }
 
     @Override
     public void start(Stage stage)
@@ -91,7 +99,12 @@ public class DoodleView extends Application
         for (int i = 0; i < shapes.length; i++) {
             buttons[i] = getImageToggleButton(shapes[i]);
             int finalI = i;
-            buttons[i].setOnMousePressed(e-> buttonText = shapes[finalI]);
+
+            buttons[i].setOnMousePressed(
+                    e->
+                    {
+                        buttonText = shapes[finalI];
+                    });
         }
 
         buttons[0].setSelected(true);
@@ -194,54 +207,42 @@ public class DoodleView extends Application
     private void drawOnCanvas()
     {
         canvas.setOnMousePressed(
-                e-> startPoint = new Pair<>(e.getX(),e.getY())
+                e-> {
+                    startPoint = new Pair<>(e.getX(),e.getY());
+                    shapeObject = controller.getInstance(buttonText);
+                }
         );
         canvas.setOnMouseDragged(
                 e->{
-                    if (buttonText.equals("Line"))
-                    {
-                        drawLine(e.getX(),e.getY());
-                    }
-                    if (buttonText.equals("Oval"))
-                    {
-                        drawOval(e.getX(),e.getY());
-                    }
+                    endPair = new Pair<>(e.getX(),e.getY());
+                    graphicsContext.clearRect(0,0,canvas.getWidth(),canvas.getHeight());
+                    controller.addShape(shapeObject);
+                    draw();
                 }
         );
+
         canvas.setOnMouseReleased(
                 e->{
-                    if (buttonText.equals("Line"))
-                    {
-                        linesList.add(new Line(startPoint.getKey(), startPoint.getValue(), e.getX(), e.getY()));
-                        graphicsContext.strokeLine(startPoint.getKey(), startPoint.getValue(), e.getX(), e.getY());
-                    }
-                    if (buttonText.equals("Oval"))
-                    {
-                        ovalsList.add(new Ellipse(startPoint.getKey(), startPoint.getValue(), e.getX(), e.getY()));
-                        graphicsContext.strokeOval(startPoint.getKey(), startPoint.getValue(), e.getX(), e.getY());                    }
+                    shapeObject.addShape();
+                    draw();
                 }
         );
     }
 
-    private void drawLine(double pointX, double pointY)
+    private void draw()
     {
-        graphicsContext.clearRect(0,0,canvas.getWidth(),canvas.getHeight());
-        addAllOvals();
-        addAllLines();
-        graphicsContext.strokeLine(startPoint.getKey(), startPoint.getValue(), pointX, pointY);
+        shapeObject.drawShape(startPoint,endPair,graphicsContext,canvas);
     }
 
-    private void drawOval(double pointX, double pointY)
+    private void addAllShapes()
     {
-        graphicsContext.clearRect(0,0,canvas.getWidth(),canvas.getHeight());
         addAllLines();
         addAllOvals();
-        graphicsContext.strokeOval(startPoint.getKey(), startPoint.getValue(), pointX, pointY);
     }
 
     private void addAllLines()
     {
-        for (Line lines : linesList)
+        for (Line lines : controller.getLines())
         {
             graphicsContext.strokeLine(lines.getStartX(),lines.getStartY(),lines.getEndX(),lines.getEndY());
         }
@@ -249,7 +250,7 @@ public class DoodleView extends Application
 
     private void addAllOvals()
     {
-        for (Ellipse ovals : ovalsList)
+        for (Ellipse ovals : controller.getOvals())
         {
             graphicsContext.strokeOval(ovals.getCenterX(),ovals.getCenterY(),ovals.getRadiusX(),ovals.getRadiusY());
         }
@@ -300,5 +301,11 @@ public class DoodleView extends Application
     {
         MenuItem[] items = {new MenuItem("About")};
         about.getItems().addAll(items);
+    }
+
+    @Override
+    public void update(Observable observable, Object... args)
+    {
+        addAllShapes();
     }
 }
