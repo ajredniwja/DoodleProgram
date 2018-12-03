@@ -1,7 +1,12 @@
+//Ajwinder Singh
+//DoodleView.java
+//11/28/2018
+
 package view;
 
 import controller.PaintController;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -12,16 +17,17 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Ellipse;
-import javafx.scene.shape.Line;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 import model.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * This is the class that assempbles all the components of my paint program and shows a user interface to the user.
+ *
+ * @author ajwinder
+ * @version 1.0
+ */
 public class DoodleView extends Application implements IObserver
 {
     public static final int WIN_WIDTH = 1000;
@@ -31,25 +37,27 @@ public class DoodleView extends Application implements IObserver
     public static final int MIN_STROKE = 1;
 
     //drawing on the canvas
-    Canvas canvas = new Canvas(Screen.getPrimary().getVisualBounds().getWidth(),Screen.getPrimary().getVisualBounds().getHeight());//give the width
-    private Pair<Double, Double> startPoint;
-    GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
-    BorderPane mainPanel = new BorderPane();
+    private Canvas canvas = new Canvas(Screen.getPrimary().getVisualBounds().getWidth(),Screen.getPrimary().getVisualBounds().getHeight());//give the width
+    private GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+    private BorderPane mainPanel = new BorderPane();
+
+    //Instances fields
     private IShape shapeObject;
     private PaintController controller;
-    Pair<Double,Double> endPair;
-
-    String buttonText = "Line";
-
-    //selecting shapes
-    private ToggleGroup shapeGroup;
 
     //shape settings
     private ColorPicker fillColorPicker = new ColorPicker();
     private ColorPicker strokeColorPicker = new ColorPicker();
     private Slider strokeSlider;
     private CheckBox filledCheckbox;
+    private String buttonText = "Line";
+    private double filledCheckBoxMarker = 0;
+    private ToggleButton[] buttons;
 
+
+    /**
+     * Constructor gives the instance to observe
+     */
     public DoodleView()
     {
         controller = new PaintController(this);
@@ -63,6 +71,7 @@ public class DoodleView extends Application implements IObserver
         stage.show();
     }
 
+    //get primary secene
     private Scene getPrimaryScene()
     {
         VBox top = new VBox();
@@ -77,7 +86,7 @@ public class DoodleView extends Application implements IObserver
 
         return scene;
     }
-
+    //toolbar
     private Parent getToolbar()
     {
         HBox panel = new HBox();
@@ -93,18 +102,16 @@ public class DoodleView extends Application implements IObserver
         shapesPanel.setId("toolbar-shapes");
 
         String[] shapes = {"Line", "Oval", "Rectangle", "Squiggle"};
-        ToggleButton[] buttons = new ToggleButton[shapes.length];
-        shapeGroup = new ToggleGroup();
+        buttons = new ToggleButton[shapes.length];
+        //selecting shapes
+        ToggleGroup shapeGroup = new ToggleGroup();
 
         for (int i = 0; i < shapes.length; i++) {
             buttons[i] = getImageToggleButton(shapes[i]);
             int finalI = i;
-
+            //set buttonText whenever clicked to teh kind of shape
             buttons[i].setOnMousePressed(
-                    e->
-                    {
-                        buttonText = shapes[finalI];
-                    });
+                    e-> buttonText = shapes[finalI]);
         }
 
         buttons[0].setSelected(true);
@@ -114,6 +121,7 @@ public class DoodleView extends Application implements IObserver
         return shapesPanel;
     }
 
+    //settings panel
     private HBox buildSettings()
     {
         HBox settingsPanel = new HBox();
@@ -162,11 +170,33 @@ public class DoodleView extends Application implements IObserver
         for (int i = 0; i < edits.length; i++) {
             buttons[i] = getImageButton(edits[i]);
         }
+
+        //undo button
+        buttons[0].setOnAction(event -> undo());
+        //redo button
+
+        buttons[1].setOnAction(event -> redo());
+
         editPanel.getChildren().addAll(buttons);
 
         return editPanel;
     }
 
+    //method to perform redo
+    private void redo()
+    {
+        controller.redo();
+        controller.notifyShapes();
+    }
+
+    //method to perform undo
+    private void undo()
+    {
+        controller.undo();
+        controller.notifyShapes();
+    }
+
+    //gets a image for the button
     private ImageView getButtonIcon(String text)
     {
         ImageView image = new ImageView(text + ".png");
@@ -193,10 +223,7 @@ public class DoodleView extends Application implements IObserver
     {
         VBox box = new VBox();
 
-        graphicsContext.setFill(Color.GREEN);
-        graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.setLineWidth(2);
-
+        //Method that draws on canvas with all the settings
         drawOnCanvas();
 
         box.getChildren().add(canvas);
@@ -204,55 +231,64 @@ public class DoodleView extends Application implements IObserver
         return box;
     }
 
+    //this is a method which has event handlers for drawing with mouse.
+    //all drawing is handled in this method
     private void drawOnCanvas()
     {
         canvas.setOnMousePressed(
                 e-> {
-                    startPoint = new Pair<>(e.getX(),e.getY());
-                    shapeObject = controller.getInstance(buttonText);
+//                    graphicsContext.setStroke(strokeColorPicker.getValue());
+                    //instantiate a class using the Factory Method
+                    if (filledCheckbox.isSelected())
+                    {
+                        //1.0 is true case for fill is selected (using double because to decreaset the arguments for the class)
+                        filledCheckBoxMarker = 1.0;
+                    }
+                    else
+                    {
+                        //zero indicates not selected fill
+                        filledCheckBoxMarker = 0.0;
+                    }
+                    Pair<Color, Color> colorSeleted = new Pair<>(strokeColorPicker.getValue(),fillColorPicker.getValue());
+                    shapeObject = controller.getInstance(buttonText,colorSeleted,
+                            e.getX(),e.getY(),
+                            0.0,0.0,strokeSlider.getValue(),filledCheckBoxMarker);
                 }
         );
         canvas.setOnMouseDragged(
                 e->{
-                    endPair = new Pair<>(e.getX(),e.getY());
+                    //draw using the points wherever the user drags the mouse
+                    shapeObject.setPoints(e.getX(),e.getY());
                     graphicsContext.clearRect(0,0,canvas.getWidth(),canvas.getHeight());
+                    //using observer pattern to check for changes and update the canvas
                     controller.addShape(shapeObject);
+                    //strokes to draw to the canvas
                     draw();
                 }
         );
 
         canvas.setOnMouseReleased(
                 e->{
+                    //store the shape
                     shapeObject.addShape();
                     draw();
                 }
         );
     }
 
+    //this is a draw method which uses the drawshape method of the IShape implemented class to stroke specific shape
     private void draw()
     {
-        shapeObject.drawShape(startPoint,endPair,graphicsContext,canvas);
+        shapeObject.drawShape(graphicsContext);
     }
 
+    //adds all the previously added shapes
     private void addAllShapes()
     {
-        addAllLines();
-        addAllOvals();
-    }
-
-    private void addAllLines()
-    {
-        for (Line lines : controller.getLines())
+        graphicsContext.clearRect(0,0,canvas.getWidth(),canvas.getHeight());
+        for (IShape shapes : controller.getShapes())
         {
-            graphicsContext.strokeLine(lines.getStartX(),lines.getStartY(),lines.getEndX(),lines.getEndY());
-        }
-    }
-
-    private void addAllOvals()
-    {
-        for (Ellipse ovals : controller.getOvals())
-        {
-            graphicsContext.strokeOval(ovals.getCenterX(),ovals.getCenterY(),ovals.getRadiusX(),ovals.getRadiusY());
+            shapes.drawShape(graphicsContext);
         }
     }
 
@@ -277,11 +313,15 @@ public class DoodleView extends Application implements IObserver
     {
         MenuItem[] items = {new MenuItem("Quit")};
         file.getItems().addAll(items);
+        items[0].setOnAction(event -> Platform.exit());
     }
 
     private void editMenu(Menu edit)
     {
         MenuItem[] items = {new MenuItem("Undo"), new MenuItem("Redo")};
+        items[0].setOnAction(event -> undo());
+        items[1].setOnAction(event -> redo());
+
         edit.getItems().addAll(items);
     }
 
@@ -290,11 +330,30 @@ public class DoodleView extends Application implements IObserver
         Menu shapesMenu = new Menu("Shape Tools");
         MenuItem[] shapes = {new MenuItem("Line"), new MenuItem("Oval"),
                              new MenuItem("Rectangle"), new MenuItem("Squiggle")};
+
+        for (int i = 0; i < shapes.length; i++)
+        {
+            int buttonIndex = i;
+            shapes[i].setOnAction(event -> {
+                //binding menu selectors to button selectors
+                buttons[buttonIndex].setSelected(true);
+                buttonText = shapes[buttonIndex].getText();
+            });
+        }
         shapesMenu.getItems().addAll(shapes);
         draw.getItems().add(shapesMenu);
 
+
         MenuItem clear = new MenuItem("Clear Shapes");
+        clear.setOnAction(event -> clearShapes());
         draw.getItems().add(clear);
+    }
+
+    //this method clear all the shapes from the canvas
+    private void clearShapes()
+    {
+        controller.clearShapes();
+        controller.notifyShapes();
     }
 
     private void help(Menu about)
@@ -303,9 +362,24 @@ public class DoodleView extends Application implements IObserver
         about.getItems().addAll(items);
     }
 
+    /**
+     * Updates the canvas and adds all the shapes that were previously drawn after there is a new shape is drawn
+     * @param observable the object we are observing
+     * @param args args
+     */
     @Override
     public void update(Observable observable, Object... args)
     {
         addAllShapes();
+    }
+
+    /**
+     * Tostring
+     * @return class name
+     */
+    @Override
+    public String toString()
+    {
+        return "DoodleView";
     }
 }

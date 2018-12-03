@@ -1,5 +1,5 @@
 //Ajwinder Singh
-//LineClass.java
+//RectClass.java
 //11/28/2018
 package model;
 
@@ -8,14 +8,13 @@ import javafx.scene.paint.Color;
 import javafx.util.Pair;
 
 /**
- * This is the line class to draw a line.
- *
+ * Class to draw a rectangle
  * @author ajwinder
  * @version 1.0
  */
-public class LineClass implements IShape
+public class RectClass implements IShape
 {
-
+    //fields
     private Double pointX;
     private Double pointY;
     private Double width;
@@ -25,12 +24,13 @@ public class LineClass implements IShape
     private double strokeWidth;
     private double fillMarker;
 
+
     /**
-     * This is a contructor
+     * Constructor to set the coordinates
      * @param points coordinates
      * @param strokeAndFill the stroke and fill color
      */
-    public LineClass(Pair<Color,Color> strokeAndFill, Double... points)
+    public RectClass(Pair<Color,Color> strokeAndFill, Double... points)
     {
         this.pointX = points[0];
         this.pointY = points[1];
@@ -44,22 +44,44 @@ public class LineClass implements IShape
     }
 
     @Override
+    public String toString()
+    {
+        return "RectClass{" +
+                "pointX=" + pointX +
+                ", pointY=" + pointY +
+                ", width=" + width +
+                ", height=" + height +
+                '}';
+    }
+
+    @Override
     public void drawShape(GraphicsContext graphicsContext)
     {
+        //minimum of x1,width makes the x point
+        //minimum of y1,height makes the y point
+        //max of x1,width - x makes the width
+        //max of x2,height - y makes the width
+        double xCord = Math.min(pointX,width);
+        double yCord = Math.min(pointY,height);
+        double newHeight = Math.max(pointY,height)-Math.min(pointY,height);
+        double newWidth = Math.max(pointX,width)-(Math.min(pointX,width));
+
         if (fillMarker == 1.0)
         {
             graphicsContext.setFill(fillColor);
+            graphicsContext.fillRect(xCord, yCord, newWidth, newHeight);
         }
         graphicsContext.setStroke(strokeColor);
         graphicsContext.setLineWidth(strokeWidth);
 
-        graphicsContext.strokeLine(pointX, pointY, width, height);
+        graphicsContext.strokeRect(xCord, yCord, newWidth, newHeight);
     }
 
     @Override
     public void addShape()
     {
-        StoreShapes.getShapes().add(new LineClass(new Pair<>(strokeColor,fillColor),pointX,pointY,width,height,strokeWidth,fillMarker));
+        StoreShapes.getShapes().add(new RectClass(new Pair<>(strokeColor,fillColor),
+                pointX,pointY,width,height,strokeWidth, fillMarker));
     }
 
     @Override
@@ -67,16 +89,5 @@ public class LineClass implements IShape
     {
         this.width = points[0];
         this.height = points[1];
-    }
-
-    @Override
-    public String toString()
-    {
-        return "LineClass{" +
-                "pointX=" + pointX +
-                ", pointY=" + pointY +
-                ", width=" + width +
-                ", height=" + height +
-                '}';
     }
 }

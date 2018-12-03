@@ -1,40 +1,89 @@
+//Ajwinder Singh
+//OvalClass.java
+//11/28/2018
+
 package model;
 
-import javafx.scene.Node;
-import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.shape.Ellipse;
-import javafx.scene.shape.Line;
+import javafx.scene.paint.Color;
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.List;
-
+/**
+ * Class to draw ovals
+ * @author ajwinder
+ * @version 1.0
+ */
 public class OvalClass implements IShape
 {
-    Pair<Double, Double> start;
-    Pair<Double, Double> end;
-    List<Ellipse> ovalsList = new ArrayList<>();
+    private Double pointX;
+    private Double pointY;
+    private Double width;
+    private Double height;
+    private Color strokeColor;
+    private Color fillColor;
+    private double strokeWidth;
+    private double fillMarker;
 
+    /**
+     * COntructor to set the coordinates
+     * @param points coordinates
+     * @param strokeAndFill the stroke and fill color
+     */
+    public OvalClass(Pair<Color,Color> strokeAndFill, Double... points)
+    {
+        this.pointX = points[0];
+        this.pointY = points[1];
+        this.width = points[2];
+        this.height = points[3];
+        this.strokeWidth = points[4];
+        this.fillMarker = points[5];
+
+        this.strokeColor = strokeAndFill.getKey();
+        this.fillColor = strokeAndFill.getValue();
+
+    }
 
     @Override
-    public void drawShape(Pair<Double, Double> startPoint, Pair<Double, Double> endPoint, GraphicsContext graphicsContext, Canvas canvas)
+    public void drawShape(GraphicsContext graphicsContext)
     {
-        graphicsContext.strokeOval(startPoint.getKey(), startPoint.getValue(),
-                endPoint.getKey()-startPoint.getKey(), endPoint.getValue()-startPoint.getValue());
-        start = startPoint;
-        end = endPoint;
+        double xCord = Math.min(pointX,width);
+        double yCord = Math.min(pointY,height);
+        double newHeight = Math.max(pointY,height)-Math.min(pointY,height);
+        double newWidth = Math.max(pointX,width)-(Math.min(pointX,width));
+
+        if (fillMarker == 1.0)
+        {
+            graphicsContext.setFill(fillColor);
+            graphicsContext.fillOval(xCord, yCord, newWidth, newHeight);
+        }
+
+        graphicsContext.setStroke(strokeColor);
+        graphicsContext.setLineWidth(strokeWidth);
+
+        graphicsContext.strokeOval(xCord, yCord, newWidth, newHeight);
     }
 
     @Override
     public void addShape()
     {
-        StoreShapes.ovals.add(new Ellipse(start.getKey(), start.getValue(), end.getKey()-start.getKey(), end.getValue()-start.getValue()));
+        StoreShapes.getShapes().add(new OvalClass(new Pair<>(strokeColor,fillColor),pointX,pointY,width,height,strokeWidth, fillMarker));
     }
 
     @Override
-    public void addAllShapesToCanvas(Pair<Double, Double> startPoint, Pair<Double, Double> endPoint)
+    public void setPoints(Double... points)
     {
+        this.width = points[0];
+        this.height = points[1];
+    }
 
+    @Override
+    public String toString()
+    {
+        return "OvalClass{" +
+                "pointX=" + pointX +
+                ", pointY=" + pointY +
+                ", width=" + width +
+                ", height=" + height +
+                '}';
     }
 }

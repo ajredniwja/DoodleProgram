@@ -1,37 +1,59 @@
+//Ajwinder Singh
+//Shape.java
+//11/28/2018
+
 package model;
 
-import javafx.scene.Node;
-
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * This is a shape class that extends from the Observable class and it is used for the observers pattern.
+ * @author ajwinder
+ * @version 1.0
+ */
 public class Shape extends Observable
 {
     private List<IShape> shapes;
 
+    /**
+     * Constructor
+     */
     public Shape()
     {
         shapes = new ArrayList<>();
     }
 
+    /**
+     * Add shapes to the list
+     * and notifies that the whenever a change happened
+     * @param shape the shape added
+     */
     public void addShape(IShape shape)
     {
         shapes.add(shape);
         notifyObservers(Change.ADD);
     }
 
+    /**
+     * Notifies the observers.
+     */
     public void notifyShapes()
     {
         notifyObservers(Change.ADD);
     }
 
-    public enum Change
+    @Override
+    public String toString()
     {
-        ADD,
-        REMOVE,
-        UPDATE,
-        RETRIEVE
+        return "Shape{" +
+                "shapes=" + shapes +
+                '}';
+    }
+
+    //enum
+    private enum Change
+    {
+        ADD
     }
 }
